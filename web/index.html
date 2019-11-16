@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en" style="height: 100%">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DNS Scanbox</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="css/materialize.css">
+    <link rel="shortcut icon" href="img/favicon.png">
+    <style>
+        input.select-dropdown.invalid {
+            border-bottom: 1px solid #F44336;
+            box-shadow: 0 1px 0 0 #F44336;
+        }
+
+        .inline-code {
+            background-color: #eff0f1;
+            font-family: Consolas;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        .legend {
+            float: left;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+            padding: 0 0.75rem;
+            min-height: 1px;
+            width: 100%;
+            margin-left: auto;
+            left: auto;
+            right: auto;
+            padding-top: 7px;
+            border: 2px solid #5C2D91;
+            border-radius: 5px;
+            margin-bottom: 13px;
+            position: relative;
+        }
+
+        .legend .legend-title {
+            position: absolute;
+            top: -15px;
+            left: 15px;
+            background-color: #ffffff;
+            color: #5C2D91;
+            font-weight: 500;
+            padding-left: 7px;
+            padding-right: 7px;
+            font-size: 17px
+        }
+
+        .legend label {
+            color: #555555;
+        }
+
+        .editable {
+            border: 1px solid #5C2D91 !important;
+        }
+    </style>
+</head>
+
+<body style="height: 100%">
+    <nav class="deep-purple">
+        <div class="nav-wrapper container">
+            <a href="#" class="brand-logo center">Scanbox</a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="sass.html"><i class="material-icons">help</i></a></li>
+            </ul>
+        </div>
+    </nav>
+    <div id="toast-container" class="scannedIPs hide" style="bottom: 67px; left: 25px; top:unset; right:unset">
+        <div class="toast">
+            Scanned IPs: &nbsp;<span class="passed">0</span>/<span class="total">-</span>
+        </div>
+    </div>
+    <div class="container" style="margin-top: 20px">
+        <div class="row" style="margin-bottom: 0">
+            <div class="col s12">
+                <ul class="tabs">
+                    <li class="tab col s3"><a href="#scanner">1. Scan/Configure</a></li>
+                    <li class="tab col s3 disabled disabledBeforeStart" id="resultsTab"><a href="#results"
+                            onclick="initTableHeight()">2. Open ports</a></li>
+                    <li class="tab col s3 disabled disabledBeforeStart" id="warningsTab"><a href="#warnings">3.
+                            Warnings</a></li>
+                    <li class="tab col s3 disabled disabledBeforeStart" id="reportTab"><a href="#report">4. Report</a>
+                    </li>
+                </ul>
+            </div>
+            <!--
+                 #####                       
+                #     #  ####    ##   #    # 
+                #       #    #  #  #  ##   # 
+                 #####  #      #    # # #  # 
+                      # #      ###### #  # # 
+                 #    # #    # #    # #   ## 
+                 #####   ####  #    # #    # 
+            -->
+            <div id="scanner" class="col s12" style="padding-top: 20px; overflow-y: scroll">
+                <div class="row">
+                    <div class="col s12">
+                        <div class="legend">
+                            <span class="legend-title">Input DNS</span>
+
+                            <div class="input-field col s8 m9">
+                                <select id="ports_select" multiple></select>
+                                <label for="ports_select">Ports to scan (*)</label>
+                            </div>
+                            <div class="input-field col s2 m2">
+                                <input id="new_port" type="number">
+                                <label for="new_port">New TCP port</label>
+                            </div>
+                            <div class="col s2 m1">
+                                <button class="btn-floating deep-purple" onclick="addPort($('#new_port').val())"
+                                    style="margin-top: 16px;">
+                                    <i class="material-icons">add</i>
+                                </button>
+                            </div>
+                            <div class="input-field col s12 m5">
+                                <label>
+                                    <input type="checkbox" id="scanLinks" class="filled-in" />
+                                    <span>Scan links on webpages (ports 80 & 443)</span>
+                                </label>
+                            </div>
+                            <div class="input-field col s2 m2" style="margin-bottom: 0">
+                                <input id="timeout" type="number" value="2">
+                                <label for="timeout">Timeout (sec.)</label>
+                            </div>
+                            <div class="input-field col s10 m5">
+                                <input id="input_dns_file" type="text">
+                                <label for="input_dns_file">DNS file path (ex. C:\Desktop\dns.txt) (*)</label>
+                                <span class="helper-text">Insert full file path</span>
+                                <span class="helper-text red-text" id="file-error"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col s12">
+                        <div class="legend">
+                            <span class="legend-title">Input IPs</span>
+                            <div class="input-field col s10 m5">
+                                <input id="perip-ip-range" type="text">
+                                <label for="perip-ip-range">IP range</label>
+                            </div>
+                            <div class="input-field col s2">
+                                <input id="perip-ports-range" type="text">
+                                <label for="perip-ports-range">Ports range</label>
+                            </div>
+                            <div class="input-field col s4 m2">
+                                <input id="perip-timeout" type="number">
+                                <label for="perip-timeout">Timeout (sec.)</label>
+                            </div>
+                            <div class="input-field col s4 m2">
+                                <select id="perip-should-respond">
+                                    <option value="OPEN">OPEN</option>
+                                    <option value="CLOSE">CLOSE</option>
+                                    <option value="NONE">NONE</option>
+                                </select>
+                                <label for="perip-should-respond">Expected response</label>
+                            </div>
+                            <div class="col s4 m1">
+                                <button class="btn-floating deep-purple" onclick="addIP(
+                                    $('#perip-ip-range').val(),
+                                    $('#perip-ports-range').val(),
+                                    $('#perip-timeout').val(),
+                                    $('#perip-should-respond').val(),
+                                )" style="margin-top: 16px;">
+                                    <i class="material-icons">add</i>
+                                </button>
+                            </div>
+                            <div class="input-field col s12">
+                                <textarea id="perip-txt" class="materialize-textarea grey lighten-3"
+                                    style="border-radius: 5px; padding-left: 8px" readonly
+                                    placeholder="IPs will be added here"></textarea>
+                                <i class="material-icons" id="edit-perip-txt"
+                                    style="cursor: pointer; position: absolute; top: 10px; right: 20px;"
+                                    onclick="editIpRanges()">edit</i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col s12">
+                        <div class="legend">
+                            <span class="legend-title">Alert trigger</span>
+                            <div class="col s12 m6">
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-new-entry" />
+                                        <span>
+                                            New scanned IP
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip="If an IP that was not scanned during the previous analysis is found in the DNS file/IPs list">help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-changed-dns-record" />
+                                        <span>
+                                            Changed DNS record
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip="If a record that was scanned during the previous analysis has a new data value (IP for A records, alias for CNAME records...)">help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-different-open-ports" />
+                                        <span>
+                                            Different open ports since last scan
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip="If a port had a different state during the previous analysis">help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                            </div>
+                            <div class="col s12 m6">
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-new-warnings-only" />
+                                        <span>
+                                            New warnings only
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip="If there is a new warning (known warnings from the previous scan will <strong>NOT</strong> trigger any alert)">help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-all-warnings" />
+                                        <span>
+                                            All warnings
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip="If there is a warning (known warnings from the previous scan will also trigger an alert)">help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                                <p>
+                                    <label>
+                                        <input type="checkbox" class="filled-in" id="altr-unexpected-state" />
+                                        <span>
+                                            Unexpected port state
+                                            <i class="material-icons right tooltipped"
+                                                data-tooltip='If the port state does not correspond to the "Expected response" param'>help</i>
+                                        </span>
+                                    </label>
+                                </p>
+                            </div>
+                            <div class="input-field col s12 m5">
+                                <input type="email" id="altr-email-address">
+                                <label for="altr-email-address">Email to alert</label>
+                            </div>
+                            <div class="input-field col s9 m5">
+                                <input type="url" id="altr-mail-server">
+                                <label for="altr-mail-server">Mailserver to use</label>
+                            </div>
+                            <div class="input-field col s3 m2">
+                                <input type="number" id="altr-mail-server-port" value="25">
+                                <label for="altr-mail-server-port">Port</label>
+                            </div>
+                            <div class="input-field col s12 m6">
+                                <input type="email" id="altr-mail-server-auth">
+                                <label for="altr-mail-server-auth">Authentication email</label>
+                            </div>
+                            <div class="input-field col s12 m6">
+                                <input type="password" id="altr-mail-server-pass">
+                                <label for="altr-mail-server-pass">Password</label>
+                                <span class="helper-text">Password will be saved locally in the inputs file</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s9">
+                        <a class="btn-block btn deep-purple" id="startScan" onclick="start()">Start scan now</a>
+                    </div>
+                    <div class="col s2">
+                        <a href="#" class="btn btn-block deep-purple" onclick="configure()">Save config</a>
+                    </div>
+                    <div class="col s1">
+                        <a class="btn btn-block red disabledBeforeStart" disabled id="stop-program" onclick="stop()">
+                            <i class="material-icons">stop</i>
+                        </a>
+                    </div>
+                    <div class="col s1 hide">
+                        <a href="" class="btn btn-block deep-purple" id="restart-program">
+                            <i class="material-icons">refresh</i>
+                        </a>
+                    </div>
+                </div>
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:absolute; top: 50%; right:50px" disabled id="goToPage2"
+                    onclick="goToPage2()">
+                    <i class="material-icons">chevron_right</i>
+                </a>
+            </div>
+            <!--
+                ######                                           
+                #     # ######  ####  #    # #      #####  ####  
+                #     # #      #      #    # #        #   #      
+                ######  #####   ####  #    # #        #    ####  
+                #   #   #           # #    # #        #        # 
+                #    #  #      #    # #    # #        #   #    # 
+                #     # ######  ####   ####  ######   #    ####  
+            -->
+            <div id="results" class="col s12">
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:absolute; top: 50%; left:50px" onclick="goToPage1()">
+                    <i class="material-icons">chevron_left</i>
+                </a>
+                <div class="preloader-wrapper big active" id="page2Loader"
+                    style="position: absolute; top: 50%; left:50%; transform-origin: center center; ">
+                    <div class="spinner-layer spinner-proximus-only">
+                        <div class="circle-clipper left">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="gap-patch">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="circle-clipper right">
+                            <div class="circle"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col s12" id="resultsTable" style="overflow-y: scroll">
+                    <table>
+                        <thead>
+                            <tr id="tableHeaderRow">
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:absolute; top: 50%; right:50px" onclick="goToPage3()">
+                    <i class="material-icons">chevron_right</i>
+                </a>
+            </div>
+            <!--
+                #     #                                                  
+                ##   ## ######  ####   ####    ##    ####  ######  ####  
+                # # # # #      #      #       #  #  #    # #      #      
+                #  #  # #####   ####   ####  #    # #      #####   ####  
+                #     # #           #      # ###### #  ### #           # 
+                #     # #      #    # #    # #    # #    # #      #    # 
+                #     # ######  ####   ####  #    #  ####  ######  ####
+            -->
+            <div id="warnings" class="col s12">
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:fixed; top: 50%; left:50px" onclick="goToPage2()">
+                    <i class="material-icons">chevron_left</i>
+                </a>
+
+                <ul class="collapsible" id="resultsMessages" style="box-shadow: none; border:none"></ul>
+
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:fixed; top: 50%; right:50px" onclick="goToPage4()">
+                    <i class="material-icons">chevron_right</i>
+                </a>
+            </div>
+            <!--
+                   #                                         
+                  # #   #      ###### #####  #####  ####     
+                 #   #  #      #      #    #   #   #         
+                #     # #      #####  #    #   #    ####     
+                ####### #      #      #####    #        #    
+                #     # #      #      #   #    #   #    #    
+                #     # ###### ###### #    #   #    ####  
+            -->
+            <div id="report" class="col s12">
+                <a class="btn-floating deep-purple disabledBeforeStart"
+                    style="display: block; position:absolute; top: 50%; left:50px" onclick="goToPage3()">
+                    <i class="material-icons">chevron_left</i>
+                </a>
+                <pre id="report-text"></pre>
+            </div>
+        </div>
+    </div>
+    <script src="/eel.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/exposed.js"></script>
+    <script src="js/script.js"></script>
+    <script>
+        eel.init();
+
+        function start() {
+            if (!formContainsErrors()) {
+                $(".invalid").removeClass("invalid");
+                $("#ports_select").parent().find("input.select-dropdown").removeClass("invalid");
+                resetResultsTable();
+
+                $("#startScan").attr("disabled", "disabled");
+                $(".disabledBeforeStart").removeAttr("disabled");
+                $(".disabledBeforeStart").removeClass("disabled");
+                $("#restart-program").parent().addClass("hide");
+                $("#stop-program").parent().show();
+                $("#file-error").html("");
+
+
+                eel.save_ips($("#perip-txt").val());
+                eel.configure(makeInputsJSON(false))
+                eel.start(makeInputsJSON());
+            }
+        }
+
+        function configure() {
+            if (!formContainsErrors()) {
+                eel.save_ips($("#perip-txt").val());
+                jsonInputs = makeInputsJSON(false);
+                eel.configure(jsonInputs);
+                Swal.fire({
+                    title: 'Config saved!',
+                    type: 'success',
+                    timer: 1000
+                })
+            }
+        }
+    </script>
+</body>
+
+</html>

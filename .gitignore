@@ -1,0 +1,11 @@
+/.idea/*
+/build/*
+/dist/*
+/scanbox/inputs/*
+/scanbox/output/*
+/scanbox/results/*
+/venv/*
+d
+dnszone.txt
+f
+**/__pycache__/*
